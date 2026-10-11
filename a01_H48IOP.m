@@ -10,22 +10,38 @@ for n = 1:10
     filename = sprintf("input/%02d.png", n);
 
     I = imread(filename);
-    restored = remove_periodic_noise(I);
-    enhaced = enhace_contrast(restored);
+    [restored, spectrum, peakRows, peakRows] = remove_periodic_noise(I);
+    enhanced = enhace_contrast(restored);
+    gray = rgb2gray(enhanced);
 
-    figure;
+    edges = edge(gray, 'canny', [0.1 0.25]);
 
-    subplot(1,3,1);
+    figure; 
+
+    subplot(1,4,1);
     imshow(I);
     title(sprintf("Original image %02d", n));
 
-    subplot(1,3,2);
-    imshow(restored);
-    title(sprintf("Denoised image %02d", n));
-    
+    subplot(2,3,2);
+    imagesc(spectrum);
+    axis image;
+    colormap gray;
+    colorbar;
 
-   subplot(1,3,3)
-   imshow(enhaced)
-   title(sprintf("Enhaced image %02d", n));
+    hold on;
+    plot(peakCols, peakRows, 'ro', ...
+        'MarkerSize', 10, 'LineWidth', 2);
+    hold off;
+
+    title('Fourier spectrum and removed peaks');
+    
+    subplot(1,4,3)
+    imshow(enhanced)
+    title(sprintf("Enhaced image %02d", n));
+
+    subplot(1,4,4)
+    imshow(edges)
+    title(sprintf("Edges of image %02d", n));
+
 
 end

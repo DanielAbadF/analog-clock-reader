@@ -1,18 +1,30 @@
 
-function restored = remove_periodic_noise(I)
+function [restored, spectrum, peakRows, peakCols] = remove_periodic_noise(I)
+%REMOVE_PERIODIC_NOISE Remove periodic interference using Fourier filtering.
+% Inputs:
+%   I         - RGB image.
+% Outputs:
+%   restored  - Filtered RGB image.
+%   spectrum  - Log-magnitude Fourier spectrum.
+%   peakRows  - Rows of the removed frequency peaks.
+%   peakCols  - Columns of the removed frequency peaks.
 
+
+    % Compute Fourier spectrum
     gray = im2double(rgb2gray(I));
 
     F = fftshift(fft2(gray));
-    S = log(1 + abs(F));
+    spectrum = log(1 + abs(F));
 
-    [rows, cols] = size(S);
+    [rows, cols] = size(spectrum);
 
+
+    % Exclude low frequencies around the center
     cy = floor(rows/2) + 1;
     cx = floor(cols/2) + 1;
 
     radius = 25;
-    S_search = S;
+    S_search = spectrum;
 
     for i = 1:rows
         for j = 1:cols
@@ -22,11 +34,15 @@ function restored = remove_periodic_noise(I)
         end
     end
 
+
+    % Detect candidate peaks
     k = 6;
 
     [~, indices] = maxk(S_search(:), k);
     [peakRows, peakCols] = ind2sub(size(S_search), indices);
 
+
+    % Calculate local peak prominence
     localRadius = 5;
     peakStrength = zeros(k, 1);
 
@@ -45,20 +61,24 @@ function restored = remove_periodic_noise(I)
                     continue;
                 end
 
-                localSum = localSum + S(i,j);
+                localSum = localSum + spectrum(i,j);
                 count = count + 1;
 
             end
         end
 
         localMean = localSum / count;
-        peakStrength(p) = S(r,c) - localMean;
+        peakStrength(p) = spectrum(r,c) - localMean;
 
     end
 
+
+    % Select significant peaks
     threshold = 3;
     selected = peakStrength > threshold;
 
+
+    % Remove selected frequencies from each RGB channel
     I_double = im2double(I);
     restored = zeros(size(I_double));
 
@@ -75,5 +95,8 @@ function restored = remove_periodic_noise(I)
         restored(:,:,channel) = real(ifft2(ifftshift(F_channel)));
 
     end
+
+    peakRows = peakRows(selected);
+    peakCols = peakCols(selected);
 
 end
