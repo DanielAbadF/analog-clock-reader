@@ -1,65 +1,62 @@
-
-function [maxX, maxY, radius] = detect_clock_circle(edges)
-%DETECT_CLOCK_CIRCLE Detect the clock circle using the Hough transform.
-% Input:
-%   edges  - Binary edge map obtained using Canny.
+function [maxX, maxY, radius] = detect_clock_circle(edges, gray)
+%DETECT_CLOCK_CIRCLE Detect the clock circle using gradient-guided Hough.
+% Inputs:
+%   edges  - Binary Canny edge map.
+%   gray   - Grayscale image.
 % Outputs:
 %   maxX   - Horizontal coordinate of the detected center.
 %   maxY   - Vertical coordinate of the detected center.
-%   radius - Radius of the detected circle.
+%   radius - Detected circle radius.
 
     [rows, cols] = size(edges);
 
-    % Get coordinates of edge pixels
+    % Get edge coordinates and image gradients
     [edgeRows, edgeCols] = find(edges);
+    [Gx, Gy] = imgradientxy(gray, 'sobel');
 
-    minRadius = 100;
-    maxRadius = 260;
+    indices = sub2ind([rows, cols], edgeRows, edgeCols);
 
-    angles = 0:359;
-    cosValues = cosd(angles);
-    sinValues = sind(angles);
+    gx = Gx(indices);
+    gy = Gy(indices);
+
+    magnitude = hypot(gx, gy);
+
+    valid = magnitude > 1e-6;
+
+    x = edgeCols(valid);
+    y = edgeRows(valid);
+
+    % Normalize gradient directions
+    ux = gx(valid) ./ magnitude(valid);
+    uy = gy(valid) ./ magnitude(valid);
 
     bestVotes = 0;
     maxX = 0;
     maxY = 0;
     radius = 0;
 
-    % Hough transform to find the circle
-    for r = minRadius:maxRadius
+    % Gradient-guided circular Hough transform
+    for r = 100:260
 
-        accumulator = zeros(rows, cols);
+        centerX = [round(x + r*ux); round(x - r*ux)];
+        centerY = [round(y + r*uy); round(y - r*uy)];
 
-        for p = 1:length(edgeRows)
+        validCenters = centerX >= 1 & centerX <= cols & ...
+                       centerY >= 1 & centerY <= rows;
 
-            x = edgeCols(p);
-            y = edgeRows(p);
+        centerX = centerX(validCenters);
+        centerY = centerY(validCenters);
 
-            for a = 1:length(angles)
+        indices = sub2ind([rows, cols], centerY, centerX);
 
-                centerX = round(x - r * cosValues(a));
-                centerY = round(y - r * sinValues(a));
+        accumulator = accumarray(indices, 1, [rows*cols, 1]);
 
-                if centerX >= 1 && centerX <= cols && ...
-                   centerY >= 1 && centerY <= rows
-
-                    accumulator(centerY, centerX) = ...
-                        accumulator(centerY, centerX) + 1;
-
-                end
-
-            end
-        end
-
-        % Find the center with the most votes for this radius
-        [votes, index] = max(accumulator(:));
+        [votes, index] = max(accumulator);
 
         if votes > bestVotes
-
             bestVotes = votes;
-            [maxY, maxX] = ind2sub(size(accumulator), index);
+            [maxY, maxX] = ind2sub([rows, cols], index);
             radius = r;
-
         end
 
     end
