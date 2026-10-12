@@ -1,6 +1,6 @@
 
 function [blueMask, redMask] = detect_color_masks(I)
-%DETECT_COLOR_MASKS Detect the blue marker and red second hand.
+%Detect the blue marker and red second hand.
 % Input:
 %   I        - Enhanced RGB image.
 % Outputs:

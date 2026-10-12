@@ -1,6 +1,6 @@
 
 function [restored, spectrum, peakRows, peakCols] = remove_periodic_noise(I)
-%REMOVE_PERIODIC_NOISE Remove periodic interference using Fourier filtering.
+%Remove periodic interference using Fourier filtering.
 % Inputs:
 %   I         - RGB image.
 % Outputs:

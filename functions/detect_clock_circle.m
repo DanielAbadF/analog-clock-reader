@@ -1,5 +1,5 @@
-function [maxX, maxY, radius] = detect_clock_circle(edges, gray)
-%DETECT_CLOCK_CIRCLE Detect the clock circle using gradient-guided Hough.
+function [cX, cY, radius] = detect_clock_circle(edges, gray)
+% Detect the clock circle using gradient-guided Hough.
 % Inputs:
 %   edges  - Binary Canny edge map.
 %   gray   - Grayscale image.
@@ -31,8 +31,8 @@ function [maxX, maxY, radius] = detect_clock_circle(edges, gray)
     uy = gy(valid) ./ magnitude(valid);
 
     bestVotes = 0;
-    maxX = 0;
-    maxY = 0;
+    cX = 0;
+    cY = 0;
     radius = 0;
 
     % Gradient-guided circular Hough transform
@@ -55,7 +55,7 @@ function [maxX, maxY, radius] = detect_clock_circle(edges, gray)
 
         if votes > bestVotes
             bestVotes = votes;
-            [maxY, maxX] = ind2sub([rows, cols], index);
+            [cY, cX] = ind2sub([rows, cols], index);
             radius = r;
         end
 

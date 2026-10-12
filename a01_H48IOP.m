@@ -28,6 +28,8 @@ for n = 1:10
     % Color segmentation
     [blueMask, redMask] = detect_color_masks(enhanced);
 
+    [angleTo12, blueX, blueY] = detect_clock_orientation(blueMask, maxX, maxY);
+
     maskRGB = zeros(size(enhanced));
     maskRGB(:,:,1) = redMask;
     maskRGB(:,:,3) = blueMask;

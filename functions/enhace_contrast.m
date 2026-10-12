@@ -1,5 +1,5 @@
 function enhanced = enhace_contrast(image)
-%ENHACE_CONTRAST Enhance image contrast using linear histogram stretching.
+%Enhance image contrast using linear histogram stretching.
 % Input:
 %   image    - RGB image.
 % Output:
