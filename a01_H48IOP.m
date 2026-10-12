@@ -1,171 +1,86 @@
-
 clear;
 clc;
 close all;
 
 addpath("functions");
 
-for n = 1:10
+files = dir(fullfile("input", "*.png"));
 
-    filename = sprintf("input/%02d.png", n);
+if isempty(files)
+    error('No input images found.');
+end
+
+N = length(files);
+
+times = zeros(N, 3);
+consistent = false(N, 1);
+
+% Process all frames
+for n = 1:N
+
+    filename = fullfile("input", files(n).name);
     I = imread(filename);
 
-    % Image preprocessing
-    [restored, spectrum, peakRows, peakCols] = remove_periodic_noise(I);
-    enhanced = enhace_contrast(restored);
+    [times(n,:), consistent(n)] = read_clock(I);
 
-    % Circle detection
-    gray = rgb2gray(enhanced);
-    edges = edge(gray, 'canny', [0.1 0.25]);
+    fprintf('%s: %02d:%02d:%02d | Consistent: %d\n', ...
+        files(n).name, times(n,1), times(n,2), times(n,3), ...
+        consistent(n));
 
-    tic;
-    [maxX, maxY, radius] = detect_clock_circle(edges, gray);
-    elapsedTime = toc;
+end
 
-    fprintf('Image %02d: center (%d, %d), radius %d, time %.4f s\n', ...
-        n, maxX, maxY, radius, elapsedTime);
+% Convert times to seconds for chronological sorting
+totalSeconds = times(:,1) * 3600 + ...
+               times(:,2) * 60 + times(:,3);
 
-    % Color segmentation
-    [blueMask, redMask] = detect_color_masks(enhanced);
+validIndices = find(consistent);
+brokenIndices = find(~consistent);
 
-    % Clock orientation and second hand
-    [angleTo12, blueX, blueY] = detect_clock_orientation( ...
-        blueMask, maxX, maxY);
+[~, order] = sort(totalSeconds(validIndices));
+validIndices = validIndices(order);
 
-    angleRed = detect_second_angle(redMask, maxX, maxY, radius);
+% Place broken clock frames at the end
+sortedIndices = [validIndices; brokenIndices];
 
-    secondAngle = mod(angleRed - angleTo12, 360);
-    seconds = mod(round(secondAngle / 6), 60);
+% Print summary table
+fprintf('\n');
+fprintf(' #  %-8s %-10s %-10s %s\n', ...
+    'file', 'time', 'elapsed', 'consistent');
 
-    fprintf('Image %02d: seconds = %02d\n', n, seconds);
+previousTime = [];
 
-    % Hough transform of black hands
-    [A, thetaValues, rhoValues, blackMask] = ...
-    detect_black_hands(gray, maxX, maxY, radius);
+for i = 1:length(sortedIndices)
 
-    % Find the two strongest Hough directions near the center
-    votes = sum(A(abs(rhoValues) <= 3, :), 1);
+    n = sortedIndices(i);
 
-    [~, index1] = max(votes);
+    h = times(n,1);
+    m = times(n,2);
+    s = times(n,3);
 
-    % Avoid selecting the same hand twice
-    angleDifference = abs(thetaValues - thetaValues(index1));
-    angleDifference = min(angleDifference, 180 - angleDifference);
+    if consistent(n)
 
-    votes(angleDifference <= 8) = 0;
+        if isempty(previousTime)
+            elapsed = '-';
+        else
+            difference = totalSeconds(n) - previousTime;
 
-    [~, index2] = max(votes);
+            elapsed = sprintf('%02d:%02d:%02d', ...
+                floor(difference / 3600), ...
+                floor(mod(difference, 3600) / 60), ...
+                mod(difference, 60));
+        end
 
-    theta1 = thetaValues(index1);
-    theta2 = thetaValues(index2);
+        previousTime = totalSeconds(n);
+        status = 'yes';
 
-    fprintf('Hough directions: %.1f and %.1f degrees\n', theta1, theta2);
+    else
 
-    maskRGB = zeros(size(enhanced));
-    maskRGB(:,:,1) = redMask;
-    maskRGB(:,:,3) = blueMask;
+        elapsed = 'broken';
+        status = 'NO';
 
-    % Visualization
-    figure('WindowState', 'maximized');
+    end
 
-    % 1. Original image
-    subplot(2,3,1);
-    imshow(I);
-    title(sprintf('Original image %02d', n));
-
-    % 2. Fourier spectrum and removed peaks
-    subplot(2,3,2);
-    imagesc(spectrum);
-    axis image;
-    colormap gray;
-    colorbar;
-
-    hold on;
-    plot(peakCols, peakRows, 'ro', ...
-        'MarkerSize', 10, 'LineWidth', 2);
-    hold off;
-
-    title('Fourier spectrum');
-
-    % 3. Denoised and contrast-enhanced image
-    subplot(2,3,3);
-    imshow(enhanced);
-    title('Denoised and contrast-stretched');
-
-    % 4. Blue marker and red second hand
-    subplot(2,3,4);
-    imshow(maskRGB);
-    title('Color masks');
-
-    % 5. Hough space of the black hands
-    subplot(2,3,5);
-
-    imagesc(thetaValues, rhoValues, A);
-    axis xy;
-    colorbar;
-    hold on;
-
-    yline(0, 'r--', 'LineWidth', 1.5);
-
-    hold off;
-
-    xlabel('Theta (degrees)');
-    ylabel('Rho (pixels)');
-    title('Hough space of black hands');
-
-    % 6. Detected circle and hand directions
-    subplot(2,3,6);
-    imshow(enhanced);
-    hold on;
-
-    theta = 0:359;
-
-    circleX = maxX + radius * cosd(theta);
-    circleY = maxY + radius * sind(theta);
-
-    % Clock circle and center
-    plot(circleX, circleY, 'g', 'LineWidth', 2);
-    plot(maxX, maxY, 'r+', 'MarkerSize', 12, 'LineWidth', 2);
-
-    % 12 o'clock marker direction
-    plot([maxX, blueX], [maxY, blueY], ...
-        'b-', 'LineWidth', 2);
-
-    plot(blueX, blueY, 'bo', ...
-        'MarkerSize', 8, 'MarkerFaceColor', 'b');
-
-    % Second hand direction
-    redX = maxX + 0.8 * radius * cosd(angleRed);
-    redY = maxY + 0.8 * radius * sind(angleRed);
-
-    plot([maxX, redX], [maxY, redY], ...
-        'r-', 'LineWidth', 2);
-
-    % Hough line directions
-    lineAngle1 = theta1 + 90;
-    lineAngle2 = theta2 + 90;
-
-    lengthLine = 0.75 * radius;
-
-    % First detected line
-    dx1 = lengthLine * cosd(lineAngle1);
-    dy1 = lengthLine * sind(lineAngle1);
-
-    plot([maxX-dx1, maxX+dx1], ...
-        [maxY-dy1, maxY+dy1], 'c--', 'LineWidth', 2);
-
-    % Second detected line
-    dx2 = lengthLine * cosd(lineAngle2);
-    dy2 = lengthLine * sind(lineAngle2);
-
-    plot([maxX-dx2, maxX+dx2], ...
-        [maxY-dy2, maxY+dy2], 'y--', 'LineWidth', 2);
-
-    hold off;
-
-    title(sprintf('Detected circle - R = %d, Seconds = %02d', ...
-        radius, seconds));
-
-    drawnow;
+    fprintf('%2d  %-8s %02d:%02d:%02d   %-10s %s\n', ...
+        i, files(n).name, h, m, s, elapsed, status);
 
 end
