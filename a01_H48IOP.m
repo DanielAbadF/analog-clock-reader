@@ -39,6 +39,28 @@ for n = 1:10
 
     fprintf('Image %02d: seconds = %02d\n', n, seconds);
 
+    % Hough transform of black hands
+    [A, thetaValues, rhoValues, blackMask] = ...
+    detect_black_hands(gray, maxX, maxY, radius);
+
+    % Find the two strongest Hough directions near the center
+    votes = sum(A(abs(rhoValues) <= 3, :), 1);
+
+    [~, index1] = max(votes);
+
+    % Avoid selecting the same hand twice
+    angleDifference = abs(thetaValues - thetaValues(index1));
+    angleDifference = min(angleDifference, 180 - angleDifference);
+
+    votes(angleDifference <= 8) = 0;
+
+    [~, index2] = max(votes);
+
+    theta1 = thetaValues(index1);
+    theta2 = thetaValues(index2);
+
+    fprintf('Hough directions: %.1f and %.1f degrees\n', theta1, theta2);
+
     maskRGB = zeros(size(enhanced));
     maskRGB(:,:,1) = redMask;
     maskRGB(:,:,3) = blueMask;
@@ -75,10 +97,21 @@ for n = 1:10
     imshow(maskRGB);
     title('Color masks');
 
-    % 5. Canny edges (temporary)
+    % 5. Hough space of the black hands
     subplot(2,3,5);
-    imshow(edges);
-    title('Canny edges (temporary)');
+
+    imagesc(thetaValues, rhoValues, A);
+    axis xy;
+    colorbar;
+    hold on;
+
+    yline(0, 'r--', 'LineWidth', 1.5);
+
+    hold off;
+
+    xlabel('Theta (degrees)');
+    ylabel('Rho (pixels)');
+    title('Hough space of black hands');
 
     % 6. Detected circle and hand directions
     subplot(2,3,6);
@@ -107,6 +140,26 @@ for n = 1:10
 
     plot([maxX, redX], [maxY, redY], ...
         'r-', 'LineWidth', 2);
+
+    % Hough line directions
+    lineAngle1 = theta1 + 90;
+    lineAngle2 = theta2 + 90;
+
+    lengthLine = 0.75 * radius;
+
+    % First detected line
+    dx1 = lengthLine * cosd(lineAngle1);
+    dy1 = lengthLine * sind(lineAngle1);
+
+    plot([maxX-dx1, maxX+dx1], ...
+        [maxY-dy1, maxY+dy1], 'c--', 'LineWidth', 2);
+
+    % Second detected line
+    dx2 = lengthLine * cosd(lineAngle2);
+    dy2 = lengthLine * sind(lineAngle2);
+
+    plot([maxX-dx2, maxX+dx2], ...
+        [maxY-dy2, maxY+dy2], 'y--', 'LineWidth', 2);
 
     hold off;
 
