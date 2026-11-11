@@ -21,6 +21,14 @@ The main objectives are:
 - Evaluate temporal consistency across a sequence of images.
 - Arrange the extracted timestamps in chronological order.
 
+## Visual Demonstration
+
+The figure below illustrates the complete image processing pipeline, from an image degraded by periodic noise to automatic clock-hand detection and time estimation.
+
+<img width="1517" height="922" alt="SampleOutput" src="https://github.com/user-attachments/assets/978bbc53-5f4c-48cc-8b4b-e2d4fa454e05" />
+
+The pipeline includes frequency-domain noise removal, image enhancement, HSV-based color segmentation, Hough transform analysis, and geometric reconstruction of the clock hands. The final visualization displays the estimated time and the clock's consistency classification.
+
 ## Methodology
 
 The processing pipeline consists of several stages.
