@@ -143,10 +143,5 @@ This project provided practical experience in combining fundamental image proces
 
 Particular emphasis was placed on frequency-domain processing, feature detection, geometric reasoning, and the interpretation of visual information through mathematical models.
 
-## Author
-
-**Daniel Abad Fundora**
-
-Erasmus Mundus Joint Master's in Artificial Intelligence for Image Processing and Computer Vision (IPCVAI)
 
 
