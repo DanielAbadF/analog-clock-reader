@@ -133,23 +133,4 @@ Image       Estimated Time    Consistent
 
 These are example readings from the development dataset, not a quantitative accuracy benchmark.
 
-## Challenges and Limitations
-
-The project illustrates several important challenges in classical computer vision:
-
-- Detecting clock hands in degraded or noisy images.
-- Distinguishing overlapping or closely aligned hands.
-- Resolving angular ambiguities.
-- Maintaining reliable time estimates under varying image conditions.
-- Balancing noise suppression with preservation of geometric features.
-
-The pipeline is designed around the visual and geometric properties of analog clocks. Its performance may depend on image quality, clock appearance, and the reliability of individual detection stages.
-
-## Learning Outcomes
-
-This project provided practical experience in combining fundamental image processing algorithms into an integrated computer vision system.
-
-Particular emphasis was placed on frequency-domain processing, feature detection, geometric reasoning, and the interpretation of visual information through mathematical models.
-
-
 
